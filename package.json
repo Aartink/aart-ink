@@ -10,7 +10,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
-  "homepage": "https://aartink.github.io/aart-ink/",
+  "homepage": "https://aart.ink/",
   "dependencies": {
     "three": "^0.175.0"
   },
