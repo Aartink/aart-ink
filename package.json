@@ -21,3 +21,23 @@
   "license": "ISC",
   "description": ""
 }
+
+{
+  "name": "aartink",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "homepage": "https://aartink.github.io/aart-ink/",
+  "dependencies": {
+    // ... your dependencies (e.g., "three": "...")
+  },
+  "devDependencies": {
+    // ... dev deps (e.g., "vite": "...", "gh-pages": "...")
+  }
+}
