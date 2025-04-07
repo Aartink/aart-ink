@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
 // Setup scene, camera, and renderer
 let currentHoveredObject = null;
 const scene = new THREE.Scene();
@@ -13,14 +15,28 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(0, 10, 30);
+camera.position.set(0, 10, 100);
 camera.lookAt(0, 0, 0);
 // Enable layer 1 so that objects on that layer (e.g. face model) render
 camera.layers.enable(1);
 
-const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#bg') });
+const renderer = new THREE.WebGLRenderer({
+  canvas: document.querySelector('#bg'),
+  antialias: true
+});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+
+// grid helper
+
+//const size = 1000;  // Size of the grid
+//const divisions = 100;  // Number of divisions (lines)
+//const gridHelper = new THREE.GridHelper(size, divisions);
+//scene.add(gridHelper);
+//const axesHelper = new THREE.AxesHelper(1000); // The size of the axes
+//scene.add(axesHelper);
+
+
 
 // Create a dedicated array for interactive objects
 const interactiveObjects = [];
@@ -30,24 +46,31 @@ const tooltip = document.createElement('div');
 tooltip.className = 'tooltip';
 document.body.appendChild(tooltip);
 
-
-
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+if (isMobile) {
+  controls.rotateSpeed = 0.3;
+  
+}
 
 // Modal – description element is a <p> that will hold HTML content
 const modal = document.createElement('div');
 modal.classList.add('modal');
 modal.innerHTML = `
   <div class="modal-overlay">
+    <button class="modal-close" aria-label="Close modal">&times;</button>
+    
     <div class="modal-content">
-      <button class="modal-close" aria-label="Close modal">&times;</button>
-      <div class="modal-body">
-        <img src="" alt="" class="modal-image" />
-        <div class="modal-embed" style="display: none;"></div>
-        <div class="modal-details">
-          <h2 class="modal-title"></h2>
-          <p class="modal-medium"><span class="value"></span></p>
-          <p class="modal-year"><span class="value"></span></p>
-          <p class="modal-description"><span class="value"></span></p>
+      <div class="modal-content-inner">
+        <div class="modal-body">
+          <img src="" alt="" class="modal-image" />
+          <div class="modal-embed" style="display: none;"></div>
+          <div class="modal-details">
+            <h2 class="modal-title"></h2>
+            <p class="modal-medium"><span class="value"></span></p>
+            <p class="modal-year"><span class="value"></span></p>
+            <p class="modal-description"><span class="value"></span></p>
+          </div>
         </div>
       </div>
     </div>
@@ -64,6 +87,61 @@ const modalMediumValue = modal.querySelector('.modal-medium .value');
 const modalYearValue = modal.querySelector('.modal-year .value');
 const modalDescriptionValue = modal.querySelector('.modal-description .value');
 
+//Modal browser zoom
+
+function getZoomLevel() {
+  return window.devicePixelRatio || 1;
+}
+
+function applyModalZoom() {
+  const zoomLevel = getZoomLevel();
+  const scaleFactor = 1 / zoomLevel;
+
+  document.querySelectorAll('.modal.active .modal-content').forEach(modal => {
+    modal.style.transform = `scale(${scaleFactor})`;
+    modal.style.transformOrigin = 'center center';
+  });
+
+  document.querySelectorAll('.modal.active .modal-details').forEach(details => {
+    details.style.transform = `scale(${scaleFactor})`;
+    details.style.transformOrigin = 'center center';
+  });
+}
+
+//Resize function for zoom
+
+function resizeRendererToDisplaySize(renderer) {
+  const canvas = renderer.domElement;
+  const pixelRatio = window.devicePixelRatio;
+  const width = Math.floor(canvas.clientWidth * pixelRatio);
+  const height = Math.floor(canvas.clientHeight * pixelRatio);
+  const needResize = canvas.width !== width || canvas.height !== height;
+
+  if (needResize) {
+    renderer.setSize(width, height, false);
+  }
+
+  return needResize;
+}
+
+//lock zoom
+
+function lockModalToZoom() {
+  const zoomLevel = window.devicePixelRatio || 1;
+  
+  // Compute the scale
+  let scale = 1 / zoomLevel;
+
+  // Set a minimum scale so it doesn't get too small
+  scale = Math.max(scale, 1); // 
+
+  const modalContent = document.querySelector('.modal-content');
+  if (modalContent) {
+    modalContent.style.transform = `scale(${scale})`;
+    modalContent.style.transformOrigin = 'center center';
+  }
+}
+
 // Updated openModal function with a social button for aart.ink
 function openModal({ name, imageSrc, medium, year, description }) {
   const content = modal.querySelector('.modal-content');
@@ -71,6 +149,14 @@ function openModal({ name, imageSrc, medium, year, description }) {
   const isBisquePot = name === 'Bisque Pot';
   const is3DScan = name === '3D Scan';
 
+  modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    controls.enabled = false;
+modalClose.focus();
+modal.style.removeProperty('transform');
+modal.style.removeProperty('transform-origin');
+  
+  
   // Reset previous content
   modalImage.src = '';
   modalImage.alt = '';
@@ -156,20 +242,29 @@ function openModal({ name, imageSrc, medium, year, description }) {
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
   modalClose.focus();
+  setTimeout(normalizeModalScale, 50);
+  setTimeout(lockModalToZoom, 50);
 }
 
 // Function to close the modal
 function closeModal() {
-  modal.classList.remove('active');
-  document.body.style.overflow = '';
+  // Start fade-out animation
+  modal.classList.add('closing');
+
+  // Delay hiding the modal until the animation completes
+  setTimeout(() => {
+    modal.classList.remove('active', 'closing'); // Remove both after animation
+    document.body.style.overflow = '';
+    controls.enabled = true;
+
+    const content = modal.querySelector('.modal-content');
+    const details = modal.querySelector('.modal-details');
+    if (content) content.style.transform = '';
+    if (details) details.style.transform = '';
+  }, 400); // Match CSS fadeOut duration (0.4s)
 }
 
-modalClose.addEventListener('click', closeModal);
-modal.addEventListener('click', (e) => {
-  if (!e.target.closest('.modal-content')) {
-    closeModal();
-  }
-});
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && modal.classList.contains('active')) {
     closeModal();
@@ -204,7 +299,7 @@ video.autoplay = true;
 video.oncanplaythrough = () => video.play();
 const videoTexture = new THREE.VideoTexture(video);
 const videoSphere = new THREE.Mesh(
-  new THREE.SphereGeometry(10, 32, 32),
+  new THREE.SphereGeometry(30, 72, 72),
   new THREE.MeshBasicMaterial({ map: videoTexture })
 );
 scene.add(videoSphere);
@@ -253,20 +348,20 @@ function createImagePlane({ src, name, description, medium, year, size, position
 const plane1 = createImagePlane({
   src: './yoko.jpg',
   name: 'Yoko',
-  description: 'A 2ft x 3ft painting featuring a glossy background that contrasts with the matte finish of the central subject, creating a dynamic interplay of texture and depth.',
-  medium: 'Acrylic on canvas',
+  description: 'Imagine a 2ft x 3ft canvas where a luminous, glossy background sets a vibrant stage for the central subject rendered in a subtle matte finish. The deliberate contrast creates a dynamic interplay of texture and depth, drawing your eye into the heart of the scene. At the center of this artistic dialogue is a personal homage to my beloved dog Yoko—a gentle reminder of her ever-present warmth and joyful spirit. Yoko’s playful eyes and comforting presence are subtly integrated into the composition, imbuing the painting with both visual intrigue and heartfelt sentiment.',
+  medium: 'Acrylic on canvas.',
   year: '2019',
   size: [20, 40],
-  position: [50, 20, 15]
+  position: [80, 60, 75]
 });
 const plane2 = createImagePlane({
   src: './yoko2.jpg',
   name: 'Yoko',
-  description: 'This piece is a colored lithophane made from cast porcelain. It was created using a mold made from a 3D-printed lithophane, from a photograph of my cat, Yoko. A handmade wooden frame encases the lithophane, while colored transparencies add color to the lithophane.</br>The labor-intensive process of making this piece reflects the care and devotion we have for our pets. When illuminated, the lithophane symbolizes how our pets brighten our lives, transforming effort into warmth, labor into love.ge description.',
+  description: 'This piece is a colored lithophane made from cast porcelain. It was created using a mold made from a 3D-printed lithophane, from a photograph of my cat, Yoko. A handmade wooden frame encases the lithophane, while colored transparencies add color to the lithophane.</br>The labor-intensive process of making this piece reflects the care and devotion we have for our pets. When illuminated, the lithophane symbolizes how our pets brighten our lives, transforming effort into warmth, labor into love.',
   medium: 'Porcelain and wood',
   year: '2025',
-  size: [20, 20],
-  position: [-55, 20, -15]
+  size: [40, 40],
+  position: [-105, 70, -75]
 });
 const plane3 = createImagePlane({
   src: './afeeling.jpg',
@@ -274,8 +369,8 @@ const plane3 = createImagePlane({
   description: 'This work features three wood-fired ceramic pieces arranged within a diorama, integrated seamlessly into the scene',
   medium: 'Stoneware, Installation',
   year: '2024',
-  size: [40, 20],
-  position: [-55, -40, -15]
+  size: [80, 40],
+  position: [-105, -80, -85]
 });
 const plane4 = createImagePlane({
   src: './owned2.png',
@@ -283,8 +378,8 @@ const plane4 = createImagePlane({
   description: 'The main subject was photographed against a green screen and printed. The print was then collaged with traditional painting on canvas. The piece was finally scanned and digitally manipulated to complete the composition.',
   medium: 'Mixed Media',
   year: '2017',
-  size: [20, 20],
-  position: [25, 40, -25]
+  size: [40, 40],
+  position: [90, 110, -85]
 });
 
 // GLTF Models
@@ -293,8 +388,8 @@ let model, abtahi, face, pot;
 
 gltfLoader.load('./aartink.glb', (glb) => {
   model = glb.scene;
-  model.scale.set(0.1, 0.1, 0.1);
-  model.position.set(0, 15, 0);
+  model.scale.set(0.3, 0.3, 0.3);
+  model.position.set(0, 45, 0);
   const data = {
     isImagePlane: true,
     name: 'aart.ink',
@@ -309,15 +404,15 @@ gltfLoader.load('./aartink.glb', (glb) => {
 
 gltfLoader.load('./pot.glb', (glb) => {
   pot = glb.scene;
-  pot.scale.set(5, 5, 5);
-  pot.position.set(-40, 10, 20);
+  pot.scale.set(10, 10, 10);
+  pot.position.set(-80, 80, 90);
   const data = {
     isImagePlane: true,
     name: 'Bisque Pot',
     imageSrc: '', // Leave blank, iframe will replace this
-    description: '',
+    description: 'One of my very first 3D scans.',
     medium: '',
-    year: ''
+    year: '2023'
   };
   propagateUserData(pot, data);
   scene.add(pot);
@@ -327,8 +422,8 @@ gltfLoader.load('./pot.glb', (glb) => {
 
 gltfLoader.load('./abtahi.glb', (glb) => {
   abtahi = glb.scene;
-  abtahi.scale.set(0.1, 0.1, 0.1);
-  abtahi.position.set(0, -15, 0);
+  abtahi.scale.set(0.3, 0.3, 0.3);
+  abtahi.position.set(0, -45, 0);
   const data = {
     isImagePlane: true,
     name: 'abtahi',
@@ -345,15 +440,15 @@ gltfLoader.load('./abtahi.glb', (glb) => {
 // Load face model, but do NOT add it to interactiveObjects so it's excluded from raycasting
 gltfLoader.load('./face.glb', (glb) => {
 face = glb.scene;
-  face.scale.set(5, 5, 5);
-  face.position.set(40, -10, -20);
+  face.scale.set(10, 10, 10);
+  face.position.set(90, -90, -90);
   const data = {
     isImagePlane: true,
     name: '3D Scan',
     imageSrc: '', // Leave blank, iframe will replace this
-    description: '',
+    description: 'Thats me!',
     medium: '',
-    year: ''
+    year: '2024'
   };
   propagateUserData(face, data);
   scene.add(face);
@@ -365,8 +460,8 @@ face = glb.scene;
 const starGroup = new THREE.Group();
 scene.add(starGroup);
 
-const starCount = 420;
-const maxRadius = 150;
+const starCount = 600;
+const maxRadius = 450;
 
 for (let i = 0; i < starCount; i++) {
   // Position inside a sphere
@@ -380,7 +475,7 @@ for (let i = 0; i < starCount; i++) {
   const position = direction.multiplyScalar(distance);
 
   // Star size grows with distance
-  const radius = THREE.MathUtils.mapLinear(distance, 0, maxRadius, 0.01, .5);
+  const radius = THREE.MathUtils.mapLinear(distance, 0, maxRadius, 0.1, .5);
 
   const geo = new THREE.SphereGeometry(radius, 12, 12);
   const mat = new THREE.MeshStandardMaterial({
@@ -398,7 +493,7 @@ for (let i = 0; i < starCount; i++) {
 const cometGroup = new THREE.Group();
 scene.add(cometGroup);
 
-const cometCount = 6;
+const cometCount = 10;
 const cometData = [];
 
 function createComet() {
@@ -459,14 +554,24 @@ scene.add(new THREE.AmbientLight(0xffffff, 1));
 scene.add(new THREE.PointLight(0xffffff, 5).position.set(0, 0, 0));
 scene.add(new THREE.DirectionalLight(0xffffff, 1).position.set(1, 1, 1).normalize());
 
-// Controls
-const controls = new OrbitControls(camera, renderer.domElement);
+
 
 // Movement
-const keys = { w: false, a: false, s: false, d: false };
+const keys = { w: false, a: false, s: false, d: false, shift: false };
 let velocity = new THREE.Vector3();
-window.addEventListener("keydown", (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = true; });
-window.addEventListener("keyup", (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+window.addEventListener("keydown", (e) => {
+  const key = e.key.toLowerCase();
+  if (key === 'shift') keys.shift = true;
+  if (keys.hasOwnProperty(key)) keys[key] = true;
+});
+
+window.addEventListener("keyup", (e) => {
+  const key = e.key.toLowerCase();
+  if (key === 'shift') keys.shift = false;
+  if (keys.hasOwnProperty(key)) keys[key] = false;
+});
+
 
 // Outline Helpers
 function addOutline(object) {
@@ -496,12 +601,21 @@ function removeOutlineFromObject(object) {
 }
 
 // Mouse Hover using dedicated interactiveObjects array
+
 window.addEventListener('mousemove', (e) => {
+  const isModalOpen = modal.classList.contains('active');
+  if (isModalOpen) {
+    tooltip.classList.remove('visible');
+    return; // Stop further hover detection
+  }
+
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(interactiveObjects, true);
   let found = false;
+
   for (const intersect of intersects) {
     if (intersect.object.userData.isImagePlane) {
       const obj = intersect.object;
@@ -509,15 +623,18 @@ window.addEventListener('mousemove', (e) => {
       tooltip.style.left = `${e.clientX + 10}px`;
       tooltip.style.top = `${e.clientY + 10}px`;
       tooltip.innerHTML = obj.userData.name;
+
       if (currentHoveredObject !== obj) {
         if (currentHoveredObject) removeOutlineFromObject(currentHoveredObject);
         addOutlineToObject(obj);
         currentHoveredObject = obj;
       }
+
       found = true;
       break;
     }
   }
+
   if (!found) {
     tooltip.classList.remove('visible');
     if (currentHoveredObject) {
@@ -527,8 +644,35 @@ window.addEventListener('mousemove', (e) => {
   }
 });
 
-// Click to open modal using dedicated interactiveObjects array
-window.addEventListener('click', () => {
+//Welcome text
+const welcomePopup = document.createElement('div');
+welcomePopup.className = 'welcome-popup';
+welcomePopup.innerHTML = `
+  <div class="welcome-content">
+    <h2>Welcome to aart.ink</h2>
+    <p>Explore my galaxy of creations — click, hover, explore, and play!</p>
+  </div>
+`;
+document.body.appendChild(welcomePopup);
+
+
+// Global click for modal interaction
+window.addEventListener('click', (e) => {
+  const isModalOpen = modal.classList.contains('active');
+  const clickedCloseButton = e.target.closest('.modal-close');
+  const clickedInsideModal = e.target.closest('.modal-content');
+
+  if (isModalOpen) {
+    // ✅ Close if clicked the close button or outside modal content
+    if (clickedCloseButton || (!clickedInsideModal && !clickedCloseButton)) {
+      closeModal();
+    }
+
+    // ❌ Don't allow any 3D interaction while modal is open
+    return;
+  }
+
+  // ✅ Allow 3D click interaction if modal isn't open
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(interactiveObjects, true);
   for (const intersect of intersects) {
@@ -540,12 +684,55 @@ window.addEventListener('click', () => {
   }
 });
 
+//scrollbar shadow
+function updateScrollShadows() {
+  const modalDetails = document.querySelector('.modal-details');
+  if (!modalDetails) return;
+
+  const scrollTop = modalDetails.scrollTop;
+  const scrollHeight = modalDetails.scrollHeight;
+  const clientHeight = modalDetails.clientHeight;
+
+  modalDetails.classList.toggle('at-top', scrollTop === 0);
+  modalDetails.classList.toggle('at-bottom', scrollTop + clientHeight >= scrollHeight - 1);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const details = document.querySelector('.modal-details');
+  if (details) {
+    details.addEventListener('scroll', updateScrollShadows);
+    setTimeout(updateScrollShadows, 100); // Trigger once on load
+  }
+});
 
 
-// Animate
+//Modal browerser-zoom scale compensation
+function normalizeModalScale() {
+  const scaleFactor = 0.8; // force "80%" appearance
+
+  const modal = document.querySelector('.modal-content');
+  const modalDetails = document.querySelector('.modal-details');
+
+  if (modal) {
+    modal.style.transform = `scale(${scaleFactor})`;
+    modal.style.transformOrigin = 'center center';
+  }
+
+  if (modalDetails) {
+    modalDetails.style.transform = `scale(${scaleFactor})`;
+    modalDetails.style.transformOrigin = 'center center';
+  }
+}
+
+window.addEventListener('load', normalizeModalScale);
+window.addEventListener('resize', normalizeModalScale);
+
+// Animations
+
 function animate() {
   requestAnimationFrame(animate);
-
+  resizeRendererToDisplaySize(renderer);
+  
   //collab
 
   const time = performance.now() * 0.001;
@@ -556,11 +743,15 @@ function animate() {
   if (video.readyState === video.HAVE_ENOUGH_DATA) videoTexture.needsUpdate = true;
  
 
+  const baseSpeed = 0.5;
+  const speed = keys.shift ? baseSpeed * 2 : baseSpeed; // ✅ shift boost
+  
   velocity.set(0, 0, 0);
-  if (keys.w) velocity.z -= 0.5;
-  if (keys.s) velocity.z += 0.5;
-  if (keys.a) velocity.x -= 0.5;
-  if (keys.d) velocity.x += 0.5;
+  if (keys.w) velocity.z -= speed;
+  if (keys.s) velocity.z += speed;
+  if (keys.a) velocity.x -= speed;
+  if (keys.d) velocity.x += speed;
+  
   camera.position.add(velocity);
 
   [plane1, plane2, plane3, plane4].forEach((plane) => {
@@ -617,7 +808,60 @@ for (let i = 0; i < cometData.length; i++) {
 animate();
 
 window.addEventListener('resize', () => {
+  if (modal.classList.contains('active')) {
+    lockModalToZoom();
+  }
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+ 
+});
+
+  // Better responsiveness on mobile
+const modalDetails = document.querySelector('.modal-details');
+
+['scroll', 'touchmove', 'wheel'].forEach(evt =>
+  modalDetails?.addEventListener(evt, updateScrollShadows)
+);
+
+const idleHint = document.createElement('div');
+idleHint.className = 'idle-hint';
+idleHint.innerText = '🕹️ Use WASD / Mouse to move around';
+document.body.appendChild(idleHint);
+
+setTimeout(() => {
+  welcomePopup.remove();
+}, 5800); // Slightly more than total animation time
+
+//idle hint
+
+let idleTimer;
+let firstIdle = true; // track if it's the first idle event
+
+function showIdleHint() {
+  idleHint.classList.add('visible'); // ✅ Use idleHint directly
+  firstIdle = false;
+}
+
+function hideIdleHint() {
+  idleHint.classList.remove('visible'); // ✅ Use idleHint directly
+}
+
+function resetIdleTimer() {
+  hideIdleHint();
+  clearTimeout(idleTimer);
+
+  const delay = firstIdle ? 5000 : 30000;
+  idleTimer = setTimeout(showIdleHint, delay);
+}
+
+
+// Events that reset idle
+['mousemove', 'keydown', 'mousedown', 'wheel', 'touchstart'].forEach(event =>
+  window.addEventListener(event, resetIdleTimer)
+);
+
+// Start idle timer when page loads
+window.addEventListener('load', () => {
+  resetIdleTimer();
 });
