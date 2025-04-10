@@ -3,13 +3,17 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/yoko.svg" />
     <title>aart.ink</title>
     
-    <script type="module" crossorigin src="/assets/index-B8jUY-76.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BMK0YiTS.css">
+    <script type="module" crossorigin src="/assets/index-B3bedmPk.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DJMdFKdU.css">
   </head>
 
   <body>
@@ -27,6 +31,21 @@
     emailjs.init("WYUc7X9XznQATR-TI"); // Replace with your actual user ID
   })();
 </script>
+
+<!-- Sound Toggle Button -->
+<button id="sound-toggle" title="Enable Sound Effects">
+  <i class="fas fa-microphone"></i>
+</button>
+
+<!-- Mic Permission Popup -->
+<div id="mic-popup" class="mic-popup">
+  <p>🎤 <strong>Enable mic for sound-reactive magic?</strong></p>
+  <div class="mic-options">
+    <button id="enable-mic-btn">🎧 Heck Yeah! Take my mic!</button>
+    <button id="deny-mic-btn">🛑 No way, wiretap wizard.</button>
+  </div>
+</div>
+
 
   </body>
 </html>
