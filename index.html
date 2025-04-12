@@ -12,8 +12,8 @@
     <link rel="icon" type="image/svg+xml" href="/yoko.svg" />
     <title>aart.ink</title>
     
-    <script type="module" crossorigin src="/assets/index-BDrYdl7k.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BvuhAHHY.css">
+    <script type="module" crossorigin src="/assets/index-9WAJlagd.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BAUUEcxK.css">
   </head>
 
   <body>
@@ -36,14 +36,16 @@
     <script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
 <script type="text/javascript">
   (function(){
-    emailjs.init("WYUc7X9XznQATR-TI"); // Replace with your actual user ID
+    emailjs.init("WYUc7X9XznQATR-TI"); // USER ID
   })();
 </script>
 
 <!-- Sound Toggle Button -->
-<button id="sound-toggle" title="Enable Sound Effects">
+<div id="sound-toggle">
   <i class="fas fa-microphone"></i>
-</button>
+  <span class="mic-hint">?</span>
+</div>
+
 
 <!-- Overlay blocker -->
 <div class="overlay" id="interaction-blocker"></div>
@@ -52,11 +54,6 @@
 
 <!-- Mic Permission Popup -->
 <div id="mic-popup" class="mic-popup">
-  <p>🎤 <strong>Enable mic for sound-reactive magic?</strong></p>
-  <div class="mic-options">
-    <button id="enable-mic-btn">🎧 Heck Yeah! Take my mic!</button>
-    <button id="deny-mic-btn">🛑 No way, wiretap wizard.</button>
-  </div>
 </div>
 
 
