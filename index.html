@@ -12,8 +12,8 @@
     <link rel="icon" type="image/svg+xml" href="/yoko.svg" />
     <title>aart.ink</title>
     
-    <script type="module" crossorigin src="/assets/index-BRaX0rNb.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index--nAb2Z45.css">
+    <script type="module" crossorigin src="/assets/index-_PHFTzNd.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CeHCqtGj.css">
   </head>
 
   <body>
@@ -27,6 +27,23 @@
       </div>
     </div>
     
+     <!-- cursor -->
+<div id="cursor-fly"></div>
+<div id="cursor-orbit"></div>
+
+
+ <!-- fly HUD -->
+    <div id="fly-hud">
+      <div class="hud-header">FLY MODE</div>
+      <div class="hud-data">
+        <div><span class="label">Speed:</span> <span id="hud-speed">0.00</span></div>
+        <div><span class="label">Yaw:</span> <span id="hud-yaw">0</span>°</div>
+        <div><span class="label">Pitch:</span> <span id="hud-pitch">0</span>°</div>
+        <div><span class="label">Roll:</span> <span id="hud-roll">0</span>°</div>
+      </div>
+    </div>
+    
+
      <!-- interaction catche -->
     <div id="interaction-catcher"></div>
 
@@ -46,13 +63,6 @@
 
     <!-- Main script -->
 
-     <!-- Email -->
-    <script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
-<script type="text/javascript">
-  (function(){
-    emailjs.init("WYUc7X9XznQATR-TI"); // USER ID
-  })();
-</script>
 
   <!-- Fullscreen control -->
 <button id="fullscreen-toggle" title="Enter fullscreen">
